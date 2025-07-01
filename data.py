@@ -13,6 +13,7 @@ class MyWebSocket:
         websocket.enableTrace(False)
 
         if os.path.isfile(".env"):
+            load_dotenv()
             self.user = os.getenv("API_USER")
             self.password = os.getenv("API_PASSWORD")
         else:
