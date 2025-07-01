@@ -3,11 +3,21 @@
 import websocket
 import time
 import json
+from dotenv import load_dotenv
+import os
+
 from websocket import create_connection
 
 class MyWebSocket:
     def __init__(self):
         websocket.enableTrace(False)
+
+        if os.path.isfile(".env"):
+            self.user = os.getenv("API_USER")
+            self.password = os.getenv("API_PASSWORD")
+        else:
+            raise ValueError("Environmental Variables are not defined")
+
         self.ws = create_connection("wss://api.tradeville.ro:443", subprotocols=["apitv"])
         self.login()
 
@@ -15,8 +25,8 @@ class MyWebSocket:
         login_payload = {
             "cmd": "login",
             "prm": {
-                "coduser": "AlexChiric",
-                "parola": "Enter3108",
+                "coduser": self.user,
+                "parola": self.password,
                 "demo": False
             }
         }
@@ -44,9 +54,9 @@ class MyWebSocket:
 if __name__ == "__main__":
     my_web_socket = MyWebSocket()
     print("\n")
-    
     result = my_web_socket.send_and_receive_message('{ "cmd": "Portfolio", "prm": { "data": "null" } }')
-
+    
+    my_web_socket.send_and_receive_message('{ "cmd": "DailyValues", "prm": { "symbol": "BRD", "dstart": "1nov20", "dend": "20nov20" } }')
     my_web_socket.wait_for_messages(5)
 
 
