@@ -1,9 +1,8 @@
-
-
 import websocket
 import time
 import json
 import os
+import pandas as pd
 
 from websocket import create_connection
 
@@ -49,15 +48,46 @@ class MyWebSocket:
     def close(self):
         print("Closing connection.")
         self.ws.close()
+
+class GetData(MyWebSocket):
+
+    def __init__(self, symbols):
+        super().__init__()
+
+        self.symbols = symbols
+
+
+    def get_time_series(self, symbol, start_date, end_date, adj=1):
+
+        command = {
+            "cmd": "DailyValues",
+            "prm": {
+                "symbol": symbol,
+                "dstart": start_date,
+                "dend": end_date,
+                "adj": adj
+            }
+        }
+
+        response_str = self.send_and_receive_message(json.dumps(command))
+        response = json.loads(response_str)
+
+        if "data" not in response:
+            raise ValueError("Response missing 'data' field")
+
+        df = pd.DataFrame(response["data"])
+        if "Date" in df.columns:
+            df["Date"] = pd.to_datetime(df["Date"])
+            df.set_index("Date", inplace=True)
+
+        return df
     
+    def get_portfolio_data(self):
+        return None
+
+
 if __name__ == "__main__":
-    my_web_socket = MyWebSocket()
-    print("\n")
-    result = my_web_socket.send_and_receive_message('{ "cmd": "Portfolio", "prm": { "data": "null" } }')
-    
-    my_web_socket.send_and_receive_message('{ "cmd": "DailyValues", "prm": { "symbol": "BRD", "dstart": "1nov20", "dend": "20nov20" } }')
-    my_web_socket.wait_for_messages(5)
-
-
-    my_web_socket.close()
-                
+    gd = GetData(["BRD"])
+    df = gd.get_time_series("BRD", "1nov05", "20nov24")
+    print(df.head())
+    gd.close()

@@ -1,3 +1,4 @@
 websocket
 pandas
 python-dotenv
+polars
