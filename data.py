@@ -2,6 +2,7 @@ import websocket
 import time
 import json
 import os
+from datetime import datetime
 import pandas as pd
 
 from websocket import create_connection
@@ -51,20 +52,34 @@ class MyWebSocket:
 
 class GetData(MyWebSocket):
 
-    def __init__(self, symbols):
+    def __init__(self, symbols, start_date, end_date):
         super().__init__()
 
         self.symbols = symbols
+        self.start_date = self.format_date(start_date)
+        self.end_date = self.format_date(end_date)
 
+    @staticmethod
+    def format_date(date_input):
+        if isinstance(date_input, datetime):
+            dt = date_input
+        else:
+            dt = datetime.strptime(date_input, "%Y-%m-%d")
 
-    def get_time_series(self, symbol, start_date, end_date, adj=1):
+        day = dt.day
+        month = dt.strftime("%b").lower()
+        year = dt.strftime("%y")    
+
+        return f"{day}{month}{year}"
+
+    def get_time_series(self, symbol, adj=1):
 
         command = {
             "cmd": "DailyValues",
             "prm": {
                 "symbol": symbol,
-                "dstart": start_date,
-                "dend": end_date,
+                "dstart": self.start_date,
+                "dend": self.end_date,
                 "adj": adj
             }
         }
@@ -83,11 +98,25 @@ class GetData(MyWebSocket):
         return df
     
     def get_portfolio_data(self):
-        return None
+        all_data = []
+
+        for symbol in self.symbols:
+            try:
+                df = self.get_time_series(symbol)
+                df["Symbol"] = symbol  # Add symbol column to preserve identity
+                all_data.append(df)
+            except Exception as e:
+                print(f"Error fetching data for {symbol}: {e}")
+
+        if all_data:
+            return pd.concat(all_data).sort_index()
+        else:
+            return pd.DataFrame()
+            
 
 
 if __name__ == "__main__":
-    gd = GetData(["BRD"])
-    df = gd.get_time_series("BRD", "1nov05", "20nov24")
-    print(df.head())
+    gd = GetData(["BRD", "SNN"], "2000-11-01", "2020-11-01")
+    df = gd.get_portfolio_data()
+    print(df)
     gd.close()
