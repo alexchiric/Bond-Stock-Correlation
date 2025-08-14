@@ -3,7 +3,9 @@ import time
 import json
 import os
 from datetime import datetime
+from string import ascii_uppercase
 import pandas as pd
+import random as random
 
 from websocket import create_connection
 
@@ -103,7 +105,7 @@ class GetData(MyWebSocket):
         for symbol in self.symbols:
             try:
                 df = self.get_time_series(symbol)
-                df["Symbol"] = symbol  # Add symbol column to preserve identity
+                df["Symbol"] = symbol
                 all_data.append(df)
             except Exception as e:
                 print(f"Error fetching data for {symbol}: {e}")
@@ -112,11 +114,86 @@ class GetData(MyWebSocket):
             return pd.concat(all_data).sort_index()
         else:
             return pd.DataFrame()
-            
+        
+    def get_symbol(self, symbol):
+        command = {
+            "cmd": "Symbol",
+            "prm": {
+                "symbol": symbol
+            }
+        }
+
+        response_str = self.send_and_receive_message(json.dumps(command))
+        try:
+            response = json.loads(response_str)
+        except json.JSONDecodeError:
+            raise ValueError("Failed to decode response JSON")
+
+        if "data" in response and isinstance(response["data"], list):
+            df = pd.DataFrame(response["data"])
+        else:
+            df = pd.DataFrame([response])
+
+        return df
+    
+    def search_symbol(self, search_param):
+        command = {
+            "cmd":"SearchSymbol",
+            "prm": {
+                "search":"electric"
+            }
+        }
+
+        response_str = self.send_and_receive_message(json.dumps(command))
+
+        try:
+            response = json.loads(response_str)
+        except json.JSONDecodeError:
+            raise ValueError("Failed to decode response JSON")
+
+        if "data" in response and isinstance(responsep["data"], list):
+            df = pd.DataFrame(response["data"])
+        else:
+            df = pd.DataFrame([response])
+
+        return df
+
+
+    
+    def find_available_symbols(self, start_year=2000, end_year=2025, delay=0.1):
+        """
+        Scans symbols matching R[YY][MM][A-Z] pattern and returns a list of valid ones.
+        """
+        valid_symbols = []
+
+        for year in range(start_year, end_year + 1):
+            yy = f"{year % 100:02d}"
+            for month in range(1, 13):
+                mm = f"{month:02d}"
+                for edition in ascii_uppercase:
+                    symbol = f"R{yy}{mm}{edition}"
+                    try:
+                        df = self.get_symbol(symbol)
+                        if not df.empty:
+                            print(f"✅ Found valid symbol: {symbol}")
+                            valid_symbols.append(symbol)
+                    except Exception:
+                        pass
+                    time.sleep(delay)
+
+        return valid_symbols
 
 
 if __name__ == "__main__":
-    gd = GetData(["BRD", "SNN"], "2000-11-01", "2020-11-01")
-    df = gd.get_portfolio_data()
-    print(df)
+    gd = GetData([], "2000-01-01", "2025-12-31")
+
+    print("\n🔍 Scanning for available symbols in the API...\n")
+    valid_symbols = gd.find_available_symbols(start_year=2000, end_year=2025, delay= random.randint(1, 5))
+
+    print(f"\n🎯 Final list of {len(valid_symbols)} valid symbols:")
+    print(valid_symbols)
+
     gd.close()
+
+
+#Idea : Reconstruct bond prices from 10-year bond yields
