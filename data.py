@@ -188,12 +188,11 @@ if __name__ == "__main__":
     gd = GetData([], "2000-01-01", "2025-12-31")
 
     print("\n🔍 Scanning for available symbols in the API...\n")
-    valid_symbols = gd.find_available_symbols(start_year=2000, end_year=2025, delay= random.randint(1, 5))
+    search_result = gd.search_symbol()
+    
+    #valid_symbols = gd.find_available_symbols(start_year=2000, end_year=2025, delay= random.random(0.01, 5))
 
     print(f"\n🎯 Final list of {len(valid_symbols)} valid symbols:")
     print(valid_symbols)
 
     gd.close()
-
-
-#Idea : Reconstruct bond prices from 10-year bond yields
