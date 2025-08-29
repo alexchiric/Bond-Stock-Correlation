@@ -2,6 +2,7 @@ import websocket
 import time
 import json
 import os
+from dotenv import load_dotenv
 from datetime import datetime
 from string import ascii_uppercase
 import pandas as pd
@@ -151,7 +152,7 @@ class GetData(MyWebSocket):
         except json.JSONDecodeError:
             raise ValueError("Failed to decode response JSON")
 
-        if "data" in response and isinstance(responsep["data"], list):
+        if "data" in response and isinstance(response["data"], list):
             df = pd.DataFrame(response["data"])
         else:
             df = pd.DataFrame([response])
@@ -185,14 +186,20 @@ class GetData(MyWebSocket):
 
 
 if __name__ == "__main__":
-    gd = GetData([], "2000-01-01", "2025-12-31")
 
-    print("\n🔍 Scanning for available symbols in the API...\n")
-    search_result = gd.search_symbol()
-    
-    #valid_symbols = gd.find_available_symbols(start_year=2000, end_year=2025, delay= random.random(0.01, 5))
+    load_dotenv()
 
-    print(f"\n🎯 Final list of {len(valid_symbols)} valid symbols:")
-    print(valid_symbols)
+    # Step 1: instantiate client with BET as symbol
+    gd = GetData(["TVBETETF"], "2011-01-01", datetime.today().strftime("%Y-%m-%d"))
+
+    # Step 2: fetch time series
+    bet_df = gd.get_time_series("TVBETETF")
+
+    # Step 3: preview & save
+    print(bet_df.head())
+    print(bet_df.tail())
+
+    bet_df.to_csv("BET_timeseries.csv")
 
     gd.close()
+
